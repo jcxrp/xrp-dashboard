@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XRP / Ripple 투자 대시보드</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-tertiary: #eeede8;
+      --bg-info: #e6f1fb;
+      --bg-success: #eaf3de;
+      --bg-warning: #faeeda;
+      --bg-danger: #fcebeb;
+      --bg-purple: #eeedfe;
+      --text-primary: #1a1a18;
+      --text-secondary: #5f5e5a;
+      --text-tertiary: #888780;
+      --text-info: #185fa5;
+      --text-success: #3b6d11;
+      --text-warning: #854f0b;
+      --text-danger: #a32d2d;
+      --text-purple: #534ab7;
+      --border: rgba(0,0,0,0.10);
+      --border-md: rgba(0,0,0,0.18);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1e1e1c;
+        --bg-secondary: #2a2a27;
+        --bg-tertiary: #222220;
+        --bg-info: #0c447c;
+        --bg-success: #27500a;
+        --bg-warning: #633806;
+        --bg-danger: #791f1f;
+        --bg-purple: #3c3489;
+        --text-primary: #f0efea;
+        --text-secondary: #b4b2a9;
+        --text-tertiary: #888780;
+        --text-info: #85b7eb;
+        --text-success: #c0dd97;
+        --text-warning: #fac775;
+        --text-danger: #f09595;
+        --text-purple: #afa9ec;
+        --border: rgba(255,255,255,0.09);
+        --border-md: rgba(255,255,255,0.18);
+      }
+    }
+
+    body { font-family: var(--font); background: var(--bg-tertiary); color: var(--text-primary); min-height: 100vh; padding: 24px 16px 56px; }
+    .container { max-width: 880px; margin: 0 auto; }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 14px;
+      background: var(--bg-primary); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 12px;
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .xrp-badge { width: 46px; height: 46px; border-radius: 50%; background: #346AA9; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .xrp-badge span { color: #e6f1fb; font-size: 13px; font-weight: 600; }
+    .brand-name { font-size: 20px; font-weight: 500; color: var(--text-primary); }
+    .brand-sub  { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .price-area { text-align: right; }
+    .price-row  { display: flex; align-items: baseline; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .price-big  { font-size: 30px; font-weight: 500; color: var(--text-primary); }
+    .badge { font-size: 13px; padding: 2px 9px; border-radius: var(--radius-md); }
+    .badge.up   { background: var(--bg-success); color: var(--text-success); }
+    .badge.down { background: var(--bg-danger);  color: var(--text-danger); }
+    .badge.neutral { background: var(--bg-secondary); color: var(--text-secondary); }
+    .last-update { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+    .upbit-box {
+      background: var(--bg-primary); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 22px; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+    }
+    .upbit-left  { display: flex; align-items: center; gap: 10px; }
+    .upbit-logo  { background: #003ED5; color: #fff; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 5px; letter-spacing: 0.03em; }
+    .upbit-label { font-size: 13px; color: var(--text-secondary); }
+    .upbit-right { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .upbit-price { font-size: 28px; font-weight: 500; color: var(--text-primary); }
+    .upbit-vol   { font-size: 12px; color: var(--text-tertiary); align-self: center; }
+    .pulse-dot   { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:.25} 50%{opacity:1} }
+
+    .section-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 0 10px; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .metric-card  { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; }
+    .metric-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; }
+    .metric-value { font-size: 21px; font-weight: 500; color: var(--text-primary); }
+    .metric-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+    .chart-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px 18px; margin-bottom: 12px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .chart-title  { font-size: 14px; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; gap: 7px; }
+    .chart-title i { font-size: 16px; color: var(--text-secondary); }
+    .period-btns  { display: flex; gap: 4px; }
+    .period-btn   { font-size: 11px; padding: 3px 10px; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: var(--font); transition: background .15s; }
+    .period-btn:hover  { background: var(--bg-secondary); }
+    .period-btn.active { background: var(--bg-info); color: var(--text-info); border-color: transparent; }
+    .chart-wrap   { position: relative; width: 100%; height: 250px; }
+    .event-tags   { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .event-tag    { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+    .chart-note   { font-size: 11px; color: var(--text-tertiary); margin-top: 8px; }
+
+    .card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+    .card-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+    .card-title i { font-size: 16px; color: var(--text-secondary); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    .news-item { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+    .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .news-date  { font-size: 11px; color: var(--text-tertiary); margin-bottom: 3px; }
+    .news-title { font-size: 13px; color: var(--text-primary); line-height: 1.45; }
+    .news-tag   { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; margin-top: 4px; }
+    .tag-blue   { background: var(--bg-info);    color: var(--text-info); }
+    .tag-green  { background: var(--bg-success);  color: var(--text-success); }
+    .tag-amber  { background: var(--bg-warning);  color: var(--text-warning); }
+    .tag-purple { background: var(--bg-purple);   color: var(--text-purple); }
+
+    .x-tweet { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+    .x-tweet:last-child { border-bottom: none; padding-bottom: 0; }
+    .x-tweet-header { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .x-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
+    .x-name   { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+    .x-handle { font-size: 11px; color: var(--text-tertiary); }
+    .x-body   { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+    .x-meta   { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+    .partner-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .partner-chip { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 9px 10px; font-size: 11px; color: var(--text-secondary); text-align: center; line-height: 1.35; }
+    .partner-chip strong { display: block; font-size: 12px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+
+    .iso-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+    .iso-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .iso-icon  { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .iso-text  { flex: 1; min-width: 0; }
+    .iso-name  { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .iso-desc  { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .iso-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; white-space: nowrap; }
+    .iso-ok    { background: var(--bg-success); color: var(--text-success); }
+    .iso-warn  { background: var(--bg-warning);  color: var(--text-warning); }
+    .iso-info  { background: var(--bg-info);     color: var(--text-info); }
+
+    .prog-row   { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .prog-row:last-child { margin-bottom: 0; }
+    .prog-label { font-size: 12px; color: var(--text-secondary); width: 120px; flex-shrink: 0; }
+    .prog-bar   { flex: 1; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+    .prog-fill  { height: 100%; border-radius: 3px; }
+    .prog-val   { font-size: 12px; font-weight: 500; color: var(--text-primary); width: 40px; text-align: right; }
+
+    .timeline { padding-left: 4px; }
+    .reg-item { position: relative; padding: 0 0 15px 24px; }
+    .reg-item::before { content:''; position:absolute; left:0; top:5px; width:8px; height:8px; border-radius:50%; background:#378add; }
+    .reg-item::after  { content:''; position:absolute; left:3.5px; top:13px; bottom:0; width:1px; background:var(--border-md); }
+    .reg-item:last-child::after { display:none; }
+    .reg-item:last-child { padding-bottom: 0; }
+    .reg-date  { font-size: 10px; color: var(--text-tertiary); margin-bottom: 2px; }
+    .reg-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+    .reg-body  { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+    .reg-item.next::before { background: var(--text-info); }
+    .reg-item.next .reg-date  { color: var(--text-info); font-weight: 500; }
+    .reg-item.next .reg-title { color: var(--text-info); }
+
+    .footer { margin-top: 24px; text-align: center; font-size: 11px; color: var(--text-tertiary); line-height: 1.8; }
+    .footer a { color: var(--text-info); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo-area">
+      <div class="xrp-badge"><span>XRP</span></div>
+      <div>
+        <div class="brand-name">Ripple / XRP</div>
+        <div class="brand-sub">글로벌 결제 인프라 레이어 · 장기 투자 대시보드</div>
+      </div>
+    </div>
+    <div class="price-area">
+      <div class="price-row">
+        <div class="price-big" id="usd-price">$—</div>
+        <div class="badge neutral" id="usd-chg"><span class="pulse-dot"></span></div>
+      </div>
+      <div class="last-update" id="upd-time">업비트 API 연결 중…</div>
+    </div>
+  </div>
+
+  <!-- UPBIT LIVE -->
+  <div class="upbit-box">
+    <div class="upbit-left">
+      <div class="upbit-logo">UPBIT</div>
+      <div class="upbit-label">XRP / KRW 실시간 시세</div>
+    </div>
+    <div class="upbit-right">
+      <div class="upbit-price" id="krw-price">₩—</div>
+      <div class="badge neutral" id="krw-chg"><span class="pulse-dot"></span></div>
+      <div class="upbit-vol" id="krw-vol"></div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="section-label">핵심 지표</div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">KRW 시세</div>
+      <div class="metric-value" id="m-krw">₩—</div>
+      <div class="metric-sub" id="m-krw-sub">24h 변동</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">시가총액 순위</div>
+      <div class="metric-value">#4</div>
+      <div class="metric-sub">약 $83.7B</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">RippleNet 파트너</div>
+      <div class="metric-value">300+</div>
+      <div class="metric-sub">55개국 이상</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">2026년 주요 딜</div>
+      <div class="metric-value">10건</div>
+      <div class="metric-sub">+7건 소규모</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">ATH (2025.07)</div>
+      <div class="metric-value">$3.66</div>
+      <div class="metric-sub" id="m-ath">KRW 대비 계산 중</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">XRP ETF 총 유입</div>
+      <div class="metric-value">$1.29B</div>
+      <div class="metric-sub">4월 순유입 $80M+</div>
+    </div>
+  </div>
+
+  <!-- 5-YEAR PRICE CHART -->
+  <div class="section-label">최근 5년 가격 추이 (업비트 KRW)</div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title"><i class="ti ti-chart-area-line"></i> XRP / KRW 장기 차트</div>
+      <div class="period-btns">
+        <button class="period-btn" onclick="setPeriod('1y')">1년</button>
+        <button class="period-btn" onclick="setPeriod('3y')">3년</button>
+        <button class="period-btn active" onclick="setPeriod('5y')">5년</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="priceChart" role="img" aria-label="XRP/KRW 5년 가격 추이 차트">XRP/KRW 과거 가격 데이터</canvas>
+    </div>
+    <div class="event-tags">
+      <span class="event-tag tag-amber">2021.04 ATH ₩2,045</span>
+      <span class="event-tag tag-purple">2022 SEC 소송 하락</span>
+      <span class="event-tag tag-blue">2024.11 트럼프 당선 급등</span>
+      <span class="event-tag tag-green">2025.03 SEC 소송 종결</span>
+      <span class="event-tag tag-green">2025.07 신 ATH ₩5,300+</span>
+      <span class="event-tag tag-amber">2026.05 CLARITY Act 대기</span>
+    </div>
+    <div class="chart-note" id="chart-note">업비트 API에서 주봉 데이터 로딩 중…</div>
+  </div>
+
+  <!-- PRICE FORECAST -->
+  <div class="section-label">가격 전망 (애널리스트 컨센서스)</div>
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title"><i class="ti ti-chart-line"></i> 연도별 목표가</div>
+    <div class="prog-row">
+      <div class="prog-label">2026 보수 전망</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:22%;background:#378ADD;"></div></div>
+      <div class="prog-val">$2.80</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">2026 기본 전망</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:32%;background:#1D9E75;"></div></div>
+      <div class="prog-val">$4.00</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">2026 강세 전망</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:52%;background:#639922;"></div></div>
+      <div class="prog-val">$9.50</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">2028 목표 (SC)</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:65%;background:#BA7517;"></div></div>
+      <div class="prog-val">$12.50</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">2030 목표 (SC)</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:100%;background:#A32D2D;"></div></div>
+      <div class="prog-val">$28</div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-tertiary);">SC = Standard Chartered · CLARITY Act 통과 여부에 따라 크게 달라짐</div>
+  </div>
+
+  <!-- NEWS + X -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-news"></i> 최신 뉴스</div>
+      <div class="news-item">
+        <div class="news-date">2026.05.10</div>
+        <div class="news-title">리플, Deutsche Bank·JPMorgan·Mastercard 등 2026년 10대 주요 딜 체결</div>
+        <span class="news-tag tag-blue">파트너십</span>
+      </div>
+      <div class="news-item">
+        <div class="news-date">2026.05.09</div>
+        <div class="news-title">CLARITY Act 상원 마크업 5월 14일 10:30 AM 확정</div>
+        <span class="news-tag tag-amber">규제</span>
+      </div>
+      <div class="news-item">
+        <div class="news-date">2026.05.07</div>
+        <div class="news-title">GraniteShares, Nasdaq에 3배 레버리지 XRP ETF 상장</div>
+        <span class="news-tag tag-purple">ETF</span>
+      </div>
+      <div class="news-item">
+        <div class="news-date">2026.04.17</div>
+        <div class="news-title">RLUSD 시총 $10억 돌파, BNY Mellon 커스터디 담당</div>
+        <span class="news-tag tag-green">RLUSD</span>
+      </div>
+      <div class="news-item">
+        <div class="news-date">2026.03</div>
+        <div class="news-title">Mastercard Crypto Partner Program 합류, $9조 결제망 연동</div>
+        <span class="news-tag tag-blue">파트너십</span>
+      </div>
+      <div class="news-item">
+        <div class="news-date">2025.12</div>
+        <div class="news-title">OCC, Ripple National Trust Bank 조건부 인가</div>
+        <span class="news-tag tag-amber">규제</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-brand-x"></i> X (트위터) 주요 동향</div>
+      <div class="x-tweet">
+        <div class="x-tweet-header">
+          <div class="x-avatar" style="background:var(--bg-info);color:var(--text-info);">BG</div>
+          <span class="x-name">Brad Garlinghouse</span>
+          <span class="x-handle">@bgarlinghouse</span>
+        </div>
+        <div class="x-body">"CLARITY Act는 XRP를 연방법 내 디지털 상품으로 영구 분류. 5월 14일 마크업이 2026년 최대 촉매제."</div>
+        <div class="x-meta"><i class="ti ti-calendar" style="font-size:11px;"></i> Consensus 2026 (2026.05.05)</div>
+      </div>
+      <div class="x-tweet">
+        <div class="x-tweet-header">
+          <div class="x-avatar" style="background:var(--bg-purple);color:var(--text-purple);">XR</div>
+          <span class="x-name">XRP 커뮤니티</span>
+          <span class="x-handle">#XRPArmy</span>
+        </div>
+        <div class="x-body">Deutsche Bank + SG Forge + Aviva + Mastercard — 9일 사이 유럽 빅4 파트너십 체결. 역대 가장 바빴던 2월.</div>
+        <div class="x-meta"><i class="ti ti-flame" style="font-size:11px;"></i> 2026년 2월 트렌드</div>
+      </div>
+      <div class="x-tweet">
+        <div class="x-tweet-header">
+          <div class="x-avatar" style="background:var(--bg-success);color:var(--text-success);">GK</div>
+          <span class="x-name">Geoffrey Kendrick</span>
+          <span class="x-handle">Standard Chartered</span>
+        </div>
+        <div class="x-body">XRP 2029년 $19.60, 2030년 $28 목표 유지. CLARITY Act 통과 시 연말 $3–5, ETF 유입 $4–8B 예상.</div>
+        <div class="x-meta"><i class="ti ti-chart-bar" style="font-size:11px;"></i> 기관 리서치 노트</div>
+      </div>
+      <div class="x-tweet">
+        <div class="x-tweet-header">
+          <div class="x-avatar" style="background:var(--bg-warning);color:var(--text-warning);">DS</div>
+          <span class="x-name">David Schwartz</span>
+          <span class="x-handle">Ripple CTO</span>
+        </div>
+        <div class="x-body">XRPL 양자내성(Post-Quantum) 업그레이드 발표. RLUSD + ODL + 토큰화 RWA $2.3B 돌파.</div>
+        <div class="x-meta"><i class="ti ti-calendar" style="font-size:11px;"></i> 2026.04.24</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTNERS + ISO -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-building-bank"></i> 주요 파트너 (2026)</div>
+      <div class="partner-grid">
+        <div class="partner-chip"><strong>Deutsche Bank</strong>€1.6조 자산</div>
+        <div class="partner-chip"><strong>JPMorgan</strong>ODL 파일럿</div>
+        <div class="partner-chip"><strong>Mastercard</strong>$9조 결제망</div>
+        <div class="partner-chip"><strong>SBI Holdings</strong>일본 최대</div>
+        <div class="partner-chip"><strong>Santander</strong>글로벌 송금</div>
+        <div class="partner-chip"><strong>Société Générale</strong>EUR 스테이블</div>
+        <div class="partner-chip"><strong>BNY Mellon</strong>RLUSD 커스터디</div>
+        <div class="partner-chip"><strong>Standard Chartered</strong>이머징마켓</div>
+        <div class="partner-chip"><strong>Aviva Investors</strong>펀드 토큰화</div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-tertiary);">전체 300+ 금융기관 · 55개국 · CBDC 파일럿 20+ 중앙은행</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-certificate"></i> ISO 20022 & XRP</div>
+      <div class="iso-row">
+        <div class="iso-icon" style="background:var(--bg-success);"><i class="ti ti-check" style="font-size:13px;color:var(--text-success);"></i></div>
+        <div class="iso-text">
+          <div class="iso-name">RippleNet 메시징</div>
+          <div class="iso-desc">결제 스키마가 ISO 20022 외부 클리어링 코드 직접 참조</div>
+        </div>
+        <span class="iso-badge iso-ok">완전 호환</span>
+      </div>
+      <div class="iso-row">
+        <div class="iso-icon" style="background:var(--bg-success);"><i class="ti ti-check" style="font-size:13px;color:var(--text-success);"></i></div>
+        <div class="iso-text">
+          <div class="iso-name">SWIFT MX 전환</div>
+          <div class="iso-desc">2025.11 전면 전환 · Ripple 파트너 30+ 은행 중복</div>
+        </div>
+        <span class="iso-badge iso-ok">인프라 연동</span>
+      </div>
+      <div class="iso-row">
+        <div class="iso-icon" style="background:var(--bg-warning);"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--text-warning);"></i></div>
+        <div class="iso-text">
+          <div class="iso-name">XRP 코인 자체</div>
+          <div class="iso-desc">ISO는 메시징 표준 — 자산 자체는 인증 불가 (ISO 공식)</div>
+        </div>
+        <span class="iso-badge iso-warn">인프라 호환</span>
+      </div>
+      <div class="iso-row">
+        <div class="iso-icon" style="background:var(--bg-info);"><i class="ti ti-trophy" style="font-size:13px;color:var(--text-info);"></i></div>
+        <div class="iso-text">
+          <div class="iso-name">CoinMarketCap 분류</div>
+          <div class="iso-desc">ISO 20022 호환 카테고리 1위 — XRP, XLM, XDC, ALGO</div>
+        </div>
+        <span class="iso-badge iso-info">카테고리 1위</span>
+      </div>
+      <div class="iso-row">
+        <div class="iso-icon" style="background:var(--bg-info);"><i class="ti ti-building" style="font-size:13px;color:var(--text-info);"></i></div>
+        <div class="iso-text">
+          <div class="iso-name">FedNow / FedWire</div>
+          <div class="iso-desc">Ripple 연준 마스터 계좌 신청 중 — 승인 시 직접 연동</div>
+        </div>
+        <span class="iso-badge iso-info">대기 중</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section-label">규제 마일스톤 타임라인</div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title"><i class="ti ti-timeline"></i> 주요 규제 이벤트</div>
+    <div class="timeline">
+      <div class="reg-item">
+        <div class="reg-date">2025년 3월</div>
+        <div class="reg-title">SEC 소송 종결 — XRP 공개 판매 비증권 확정</div>
+        <div class="reg-body">$125M 벌금 유지, 기관 투자 환경 급격히 개선. Brad Garlinghouse CEO 공식 발표.</div>
+      </div>
+      <div class="reg-item">
+        <div class="reg-date">2025년 11월</div>
+        <div class="reg-title">SWIFT ISO 20022 전면 전환 — MT 메시지 종료</div>
+        <div class="reg-body">RippleNet이 ISO 20022 호환 인프라로 SWIFT 대체 루트 역할 부각.</div>
+      </div>
+      <div class="reg-item">
+        <div class="reg-date">2025년 12월</div>
+        <div class="reg-title">OCC, Ripple National Trust Bank 조건부 인가</div>
+        <div class="reg-body">미국 최초 크립토 네이티브 신탁은행. RLUSD 준비금 보관 및 디지털 자산 커스터디.</div>
+      </div>
+      <div class="reg-item">
+        <div class="reg-date">2026년 3월 17일</div>
+        <div class="reg-title">SEC·CFTC, XRP를 공식 '디지털 상품'으로 분류</div>
+        <div class="reg-body">기관 ETF 승인 근거 마련. 7개 현물 XRP ETF 상장, AUM $1B 접근.</div>
+      </div>
+      <div class="reg-item">
+        <div class="reg-date">2026년 4월 1일</div>
+        <div class="reg-title">OCC 신탁은행 최종 규칙 발효</div>
+        <div class="reg-body">디지털 자산 커스터디, 수탁 서비스, 결제 정산 범위 확대.</div>
+      </div>
+      <div class="reg-item next">
+        <div class="reg-date">2026년 5월 14일 ★ 예정</div>
+        <div class="reg-title">CLARITY Act 상원 Banking Committee 마크업</div>
+        <div class="reg-body">통과 시 XRP 디지털 상품 지위 연방법 영구화. 단기 $1.70–$2.00, 상원 전체 통과 시 $5–$10 전망.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>실시간 데이터: 업비트 공개 REST API (10초마다 갱신) · 투자 참고용이며 투자 권유가 아닙니다.</p>
+    <p><a href="https://upbit.com/exchange?code=CRIX.UPBIT.KRW-XRP" target="_blank">업비트</a> · <a href="https://www.coingecko.com/en/coins/xrp" target="_blank">CoinGecko</a> · <a href="https://ripple.com" target="_blank">ripple.com</a></p>
+  </div>
+</div>
+
+<script>
+const TICKER_URL  = 'https://api.upbit.com/v1/ticker?markets=KRW-XRP';
+const WEEKS_URL   = 'https://api.upbit.com/v1/candles/weeks?market=KRW-XRP&count=260';
+const DAYS_URL    = 'https://api.upbit.com/v1/candles/days?market=KRW-XRP&count=365';
+
+let chart       = null;
+let weekData    = [];
+let dayData     = [];
+let curPeriod   = '5y';
+const ATH_KRW   = 5300;
+
+function isDark() { return window.matchMedia('(prefers-color-scheme:dark)').matches; }
+
+function setEl(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+function setClass(id, cls) { const el = document.getElementById(id); if (el) el.className = cls; }
+
+/* ── TICKER ── */
+async function fetchTicker() {
+  try {
+    const r = await fetch(TICKER_URL);
+    const [t] = await r.json();
+    if (!t) return;
+
+    const krw  = t.trade_price;
+    const rate = (t.signed_change_rate * 100).toFixed(2);
+    const isUp = t.signed_change_price >= 0;
+    const sign = isUp ? '▲ +' : '▼ ';
+    const vol  = (t.acc_trade_price_24h / 1e8).toFixed(0);
+    const usd  = (krw / 1370).toFixed(4);
+
+    setEl('krw-price', '₩' + krw.toLocaleString());
+    setEl('krw-chg', sign + rate + '%');
+    setClass('krw-chg', 'badge ' + (isUp ? 'up' : 'down'));
+    setEl('krw-vol', '24h ₩' + Number(vol).toLocaleString() + '억');
+
+    setEl('usd-price', '$' + usd);
+    setEl('usd-chg', sign + rate + '%');
+    setClass('usd-chg', 'badge ' + (isUp ? 'up' : 'down'));
+
+    const now = new Date();
+    setEl('upd-time', now.toLocaleDateString('ko-KR') + ' ' +
+      now.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) + ' 업비트 기준');
+
+    setEl('m-krw', '₩' + krw.toLocaleString());
+    setEl('m-krw-sub', sign + rate + '% (24h)');
+
+    const athPct = (((krw / ATH_KRW) - 1) * 100).toFixed(1);
+    setEl('m-ath', 'KRW ATH 대비 ' + athPct + '%');
+
+  } catch(e) {
+    setEl('krw-chg', '로컬 파일 실행 시 CORS 차단');
+  }
+}
+
+/* ── CANDLES ── */
+async function fetchCandles() {
+  try {
+    const [wr, dr] = await Promise.all([fetch(WEEKS_URL), fetch(DAYS_URL)]);
+    weekData = (await wr.json()).reverse();
+    dayData  = (await dr.json()).reverse();
+    setEl('chart-note', '업비트 주봉 ' + weekData.length + '개 · 일봉 ' + dayData.length + '개 로드 완료');
+    renderChart('5y');
+  } catch(e) {
+    setEl('chart-note', '⚠ API 로드 실패 (로컬 파일 CORS 차단). GitHub Pages 등 서버에서 열면 실시간 차트가 표시됩니다. 아래는 대표 히스토리 데이터입니다.');
+    renderFallback();
+  }
+}
+
+/* ── CHART ── */
+function getColors() {
+  return isDark()
+    ? { line:'#5ba3e8', g0:'rgba(91,163,232,.26)', g1:'rgba(91,163,232,.01)', grid:'rgba(255,255,255,.07)', tick:'#888780' }
+    : { line:'#378ADD', g0:'rgba(55,138,221,.18)', g1:'rgba(55,138,221,.01)', grid:'rgba(0,0,0,.06)',       tick:'#888780' };
+}
+
+window.setPeriod = function(p) {
+  curPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === {'1y':'1년','3y':'3년','5y':'5년'}[p]);
+  });
+  if (weekData.length) renderChart(p);
+};
+
+function renderChart(p) {
+  let raw;
+  if (p === '1y')      raw = dayData.length  ? dayData.slice(-365)  : weekData.slice(-52);
+  else if (p === '3y') raw = weekData.slice(-156);
+  else                 raw = weekData;
+
+  const labels = raw.map(c => {
+    const d = new Date(c.candle_date_time_kst || c.candle_date_time_utc);
+    return p === '1y'
+      ? (d.getMonth()+1) + '/' + d.getDate()
+      : d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0');
+  });
+  const prices = raw.map(c => c.trade_price ?? c.close_price);
+
+  const col = getColors();
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 250);
+  grad.addColorStop(0, col.g0);
+  grad.addColorStop(1, col.g1);
+
+  if (chart) chart.destroy();
+
+  const total    = labels.length;
+  const maxLbls  = 10;
+  const skipN    = Math.max(1, Math.floor(total / maxLbls));
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: prices,
+        borderColor: col.line,
+        borderWidth: 2,
+        backgroundColor: grad,
+        fill: true,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark() ? '#2a2a27' : '#fff',
+          titleColor: col.tick,
+          bodyColor: isDark() ? '#f0efea' : '#1a1a18',
+          borderColor: isDark() ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.10)',
+          borderWidth: 0.5,
+          padding: 10,
+          callbacks: {
+            label: c => '₩' + Math.round(c.parsed.y).toLocaleString()
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: col.grid },
+          ticks: {
+            color: col.tick, font: { size: 10 }, maxRotation: 0,
+            callback: (val, idx) => idx % skipN === 0 ? labels[idx] : ''
+          }
+        },
+        y: {
+          grid: { color: col.grid },
+          ticks: {
+            color: col.tick, font: { size: 10 },
+            callback: v => '₩' + v.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderFallback() {
+  const hist = [
+    ['2021.01',430],['2021.03',1200],['2021.04',2045],['2021.06',700],
+    ['2021.11',1400],['2022.01',950],['2022.06',420],['2022.11',380],
+    ['2023.03',450],['2023.06',820],['2023.10',780],
+    ['2024.01',820],['2024.06',730],['2024.11',1800],
+    ['2025.01',3200],['2025.03',2400],['2025.07',5300],['2025.10',2800],
+    ['2026.01',3350],['2026.03',2400],['2026.05',1940]
+  ];
+  const col = getColors();
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,250);
+  grad.addColorStop(0, col.g0); grad.addColorStop(1, col.g1);
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.map(d => d[0]),
+      datasets: [{
+        data: hist.map(d => d[1]),
+        borderColor: col.line, borderWidth: 2,
+        backgroundColor: grad, fill: true,
+        pointRadius: 4, pointHoverRadius: 6,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => '₩' + c.parsed.y.toLocaleString() } }
+      },
+      scales: {
+        x: { grid:{color:col.grid}, ticks:{color:col.tick, font:{size:10}, maxRotation:45} },
+        y: { grid:{color:col.grid}, ticks:{color:col.tick, font:{size:10}, callback: v=>'₩'+v.toLocaleString()} }
+      }
+    }
+  });
+}
+
+/* ── INIT ── */
+fetchTicker();
+fetchCandles();
+setInterval(fetchTicker, 10000);
+</script>
+</body>
+</html>
